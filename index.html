@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>IO42 Lab — Control plane for AI-agent-controlled robot fleets</title>
+<meta name="description" content="IO42 is the infrastructure that lets AI agents safely operate heterogeneous robot fleets in production. Orchestration, policy, observability, and human-in-the-loop control through a single API.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-70 -70 140 140'%3E%3Crect x='-70' y='-70' width='140' height='140' fill='%230a0a0b'/%3E%3Cg stroke='%23ff5b1f' stroke-width='9' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 0 -50 L 50 0 L 0 50 L -50 0 Z'/%3E%3C/g%3E%3Cg fill='%23ff5b1f'%3E%3Cpolygon points='-18,-18 0,-32 18,-18 18,-4 -18,-4'/%3E%3Cpolygon points='-18,4 18,4 18,18 0,32 -18,18'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-elev: #131316;
+    --bg-card: #1a1a1e;
+    --line: #26262b;
+    --line-strong: #34343c;
+    --text: #ededef;
+    --text-dim: #a8a8b0;
+    --text-faint: #7c7c86;
+    --accent: #ff5b1f;
+    --accent-dim: #b8421a;
+    --signal: #6ee7a8;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --serif: 'Fraunces', Georgia, serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    scroll-behavior: smooth;
+    color-scheme: dark;
+    background: var(--bg);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-weight: 400;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Every section gets an explicit dark background so force-dark
+     browser modes have nothing left to "guess" and invert. */
+  section {
+    background: var(--bg);
+  }
+
+  /* Grid background overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Noise texture */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 1;
+    mix-blend-mode: overlay;
+  }
+
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 32px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ============ NAV ============ */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+    background: rgba(10, 10, 11, 0.7);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    letter-spacing: 0.03em;
+    text-transform: lowercase;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .logo .wm-io { font-weight: 400; }
+  .logo .wm-42 { font-weight: 700; }
+  .logo .wm-lab { font-weight: 500; color: var(--text-faint); }
+  .logo-mark {
+    width: 26px;
+    height: 26px;
+    display: block;
+    flex-shrink: 0;
+  }
+  .logo-mark svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .nav-links a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    font-size: 13px;
+    padding: 8px 16px;
+    background: var(--text);
+    color: var(--bg);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.2s;
+  }
+  .nav-cta:hover { opacity: 0.8; }
+
+  @media (max-width: 768px) {
+    .nav-links { display: none; }
+  }
+
+  /* ============ HERO ============ */
+  .hero {
+    padding: 180px 0 120px;
+    position: relative;
+  }
+  .hero-meta {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hero-meta::before {
+    content: '';
+    width: 24px; height: 1px;
+    background: var(--accent);
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(40px, 7vw, 88px);
+    line-height: 0.98;
+    letter-spacing: -0.025em;
+    margin-bottom: 40px;
+    max-width: 980px;
+  }
+  .hero h1 .accent {
+    color: var(--accent);
+    font-style: italic;
+  }
+  .hero h1 .term {
+    position: relative;
+    display: inline-block;
+  }
+  .hero h1 .term::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0.12em;
+    height: 1px;
+    background: var(--line-strong);
+  }
+  .hero-sub {
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    max-width: 640px;
+    margin-bottom: 56px;
+  }
+  .hero-sub strong { color: var(--text); font-weight: 500; }
+
+  .cta-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 14px 24px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    letter-spacing: 0.01em;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #1a0a05;
+  }
+  .btn-primary:hover {
+    background: #ff6f3a;
+    transform: translateY(-1px);
+  }
+  .btn-ghost {
+    color: var(--text);
+    border-color: var(--line-strong);
+  }
+  .btn-ghost:hover {
+    border-color: var(--text-dim);
+    background: var(--bg-elev);
+  }
+  .btn .arrow {
+    transition: transform 0.2s;
+  }
+  .btn:hover .arrow { transform: translateX(3px); }
+
+  /* Hero status indicator */
+  .status-strip {
+    margin-top: 96px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    font-size: 12px;
+  }
+  .status-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .status-label {
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 10px;
+  }
+  .status-value {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .status-value .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--signal);
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  @media (max-width: 768px) {
+    .status-strip { grid-template-columns: repeat(2, 1fr); }
+    .hero { padding: 140px 0 80px; }
+  }
+
+  /* ============ SECTION HEADERS ============ */
+  section {
+    padding: 120px 0;
+    position: relative;
+  }
+  .section-marker {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-marker .num {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .section-marker .bar {
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+    max-width: 80px;
+  }
+  .section-title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(32px, 4.5vw, 56px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 48px;
+    max-width: 880px;
+  }
+  .section-title em {
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  /* ============ PROBLEM ============ */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+  }
+  .problem-prose p {
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+  .problem-prose strong { color: var(--text); font-weight: 500; }
+  .problem-list {
+    list-style: none;
+    border-top: 1px solid var(--line);
+  }
+  .problem-list li {
+    padding: 24px 0;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .problem-list .idx {
+    font-size: 12px;
+    color: var(--text-faint);
+    padding-top: 4px;
+  }
+  .problem-list h4 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 20px;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .problem-list p {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  @media (max-width: 900px) {
+    .problem-grid { grid-template-columns: 1fr; gap: 48px; }
+  }
+
+  /* ============ ARCHITECTURE ============ */
+  .arch-section {
+    background: var(--bg-elev);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .arch-diagram {
+    margin-top: 48px;
+    padding: 48px 32px;
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255,91,31,0.04) 0%, transparent 60%),
+      var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .arch-diagram::before {
+    content: 'IO42.ARCHITECTURE';
+    position: absolute;
+    top: 16px; left: 24px;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.18em;
+  }
+  .arch-diagram::after {
+    content: 'v0.1';
+    position: absolute;
+    top: 16px; right: 24px;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.18em;
+  }
+
+  .arch-grid {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    gap: 0;
+    margin-top: 40px;
+  }
+  .arch-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 24px;
+    align-items: stretch;
+  }
+  .arch-label {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding-top: 24px;
+    border-top: 1px dashed var(--line-strong);
+    text-align: right;
+    padding-right: 8px;
+  }
+  .arch-tier {
+    border-top: 1px dashed var(--line-strong);
+    padding: 24px 0;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .arch-node {
+    flex: 1;
+    min-width: 140px;
+    padding: 16px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--line-strong);
+    font-size: 12px;
+  }
+  .arch-node .node-type {
+    color: var(--text-faint);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .arch-node .node-name {
+    color: var(--text);
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .arch-tier.core .arch-node {
+    background: linear-gradient(180deg, rgba(255,91,31,0.08) 0%, var(--bg-card) 100%);
+    border-color: var(--accent-dim);
+  }
+  .arch-tier.core .arch-node .node-name {
+    color: var(--accent);
+  }
+  .arch-flow {
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    padding: 8px 0;
+    grid-column: 1 / -1;
+  }
+  @media (max-width: 768px) {
+    .arch-row { grid-template-columns: 1fr; }
+    .arch-label { text-align: left; padding-right: 0; padding-top: 16px; }
+    .arch-tier { padding: 16px 0; }
+    .arch-node { min-width: 100%; }
+  }
+
+  /* ============ PILLARS ============ */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-top: 48px;
+  }
+  .pillar {
+    background: var(--bg);
+    padding: 40px 36px;
+    position: relative;
+    transition: background 0.3s;
+  }
+  .pillar:hover { background: var(--bg-elev); }
+  .pillar-num {
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.18em;
+    margin-bottom: 24px;
+  }
+  .pillar-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 26px;
+    margin-bottom: 16px;
+    letter-spacing: -0.015em;
+  }
+  .pillar-desc {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+  .pillar-spec {
+    list-style: none;
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+  }
+  .pillar-spec li {
+    font-size: 12px;
+    color: var(--text-faint);
+    padding: 6px 0;
+    display: flex;
+    gap: 12px;
+  }
+  .pillar-spec li::before {
+    content: '+';
+    color: var(--accent);
+  }
+  @media (max-width: 768px) {
+    .pillars { grid-template-columns: 1fr; }
+  }
+
+  /* ============ WHY NOW ============ */
+  .why-now {
+    border-top: 1px solid var(--line);
+  }
+  .curves {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    margin-top: 48px;
+  }
+  .curve {
+    padding: 32px 0;
+    border-top: 2px solid var(--accent);
+  }
+  .curve-name {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .curve-claim {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin-bottom: 20px;
+  }
+  .curve-detail {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  @media (max-width: 900px) {
+    .curves { grid-template-columns: 1fr; }
+  }
+
+  /* ============ MOAT ============ */
+  .moat-section {
+    background: var(--bg-elev);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .moat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-top: 48px;
+  }
+  .moat-cell {
+    background: var(--bg-elev);
+    padding: 40px 32px;
+  }
+  .moat-icon {
+    width: 32px; height: 32px;
+    border: 1px solid var(--accent);
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .moat-cell:nth-child(1) .moat-icon::before {
+    content: ''; position: absolute; inset: 6px;
+    background: var(--accent); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  }
+  .moat-cell:nth-child(2) .moat-icon::before {
+    content: ''; position: absolute; inset: 8px;
+    background: var(--accent); border-radius: 50%;
+  }
+  .moat-cell:nth-child(3) .moat-icon::before {
+    content: ''; position: absolute; inset: 6px;
+    background: repeating-linear-gradient(90deg, var(--accent) 0 2px, transparent 2px 5px);
+  }
+  .moat-title {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+  }
+  .moat-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.65;
+  }
+  @media (max-width: 768px) {
+    .moat-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ============ CTA ============ */
+  .cta-section {
+    text-align: center;
+    padding: 160px 0;
+  }
+  .cta-headline {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(36px, 6vw, 72px);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    margin-bottom: 16px;
+  }
+  .cta-headline .accent { color: var(--accent); font-style: normal; }
+  .cta-sub {
+    font-size: 15px;
+    color: var(--text-dim);
+    margin-bottom: 48px;
+  }
+  .cta-section .cta-row { justify-content: center; }
+
+  /* ============ FOOTER ============ */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 48px 0 32px;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .footer-inner {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: start;
+  }
+  .footer-meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .footer-meta a {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  .footer-meta a:hover { color: var(--text); }
+
+  /* ============ ANIMATIONS ============ */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: reveal 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  @keyframes reveal {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.25s; }
+  .delay-3 { animation-delay: 0.4s; }
+  .delay-4 { animation-delay: 0.55s; }
+  .delay-5 { animation-delay: 0.7s; }
+
+  /* Scroll-triggered reveals */
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .scroll-reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg">
+          <g stroke="#ff5b1f" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 0 -50 L 50 0 L 0 50 L -50 0 Z"/>
+          </g>
+          <g fill="#ff5b1f">
+            <polygon points="-18,-18 0,-32 18,-18 18,-4 -18,-4"/>
+            <polygon points="-18,4 18,4 18,18 0,32 -18,18"/>
+          </g>
+        </svg>
+      </span>
+      <span><span class="wm-io">io</span><span class="wm-42">42</span> <span class="wm-lab">lab</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="#problem">Problem</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#platform">Platform</a>
+      <a href="#why-now">Why now</a>
+    </div>
+    <a href="#cta" class="nav-cta">Request access →</a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-meta reveal">SYS / 001 — INFRASTRUCTURE FOR PHYSICAL AUTONOMY</div>
+    <h1 class="reveal delay-1">
+      <span class="term">Control plane</span> for<br>
+      <span class="accent">AI-agent-controlled</span><br>
+      robot fleets.
+    </h1>
+    <p class="hero-sub reveal delay-2">
+      IO42 is the infrastructure that lets AI agents safely operate <strong>heterogeneous robot fleets</strong> in production — with the orchestration, policy, and observability primitives that physical autonomy demands.
+    </p>
+    <div class="cta-row reveal delay-3">
+      <a href="#cta" class="btn btn-primary">Request access <span class="arrow">→</span></a>
+      <a href="#architecture" class="btn btn-ghost">Read the technical brief <span class="arrow">→</span></a>
+    </div>
+
+    <div class="status-strip reveal delay-4">
+      <div class="status-cell">
+        <span class="status-label">Status</span>
+        <span class="status-value"><span class="dot"></span>Private beta</span>
+      </div>
+      <div class="status-cell">
+        <span class="status-label">Stage</span>
+        <span class="status-value">Seed</span>
+      </div>
+      <div class="status-cell">
+        <span class="status-label">Substrate</span>
+        <span class="status-value">Hardware-agnostic</span>
+      </div>
+      <div class="status-cell">
+        <span class="status-label">Interface</span>
+        <span class="status-value">Single API</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROBLEM ============ -->
+<section id="problem">
+  <div class="wrap">
+    <div class="section-marker scroll-reveal">
+      <span class="num">01</span> / The gap
+      <span class="bar"></span>
+    </div>
+    <h2 class="section-title scroll-reveal">
+      Agents can reason. Robots can act.<br>
+      <em>Nothing connects them at scale.</em>
+    </h2>
+
+    <div class="problem-grid">
+      <div class="problem-prose scroll-reveal">
+        <p>Every team building agent-driven robotics rebuilds the same primitives — fleet orchestration, safety policy, telemetry, human override — on top of <strong>vendor SDKs that were never designed for autonomous, multi-agent operation</strong>.</p>
+        <p>The result is brittle stacks, slow iteration, and no path to scale beyond a single pilot. Vendor SDKs are single-robot. ROS 2 is a middleware, not a control plane. <strong>There is no Kubernetes for robot fleets.</strong></p>
+      </div>
+      <ul class="problem-list scroll-reveal">
+        <li>
+          <span class="idx">01</span>
+          <div>
+            <h4>Fragmented fleets</h4>
+            <p>Every vendor ships its own SDK, its own command model, its own telemetry format. Mixed-fleet operation is glue code all the way down.</p>
+          </div>
+        </li>
+        <li>
+          <span class="idx">02</span>
+          <div>
+            <h4>No agent safety layer</h4>
+            <p>Agent autonomy in the physical world needs declarative policy, hard rails, and audit trails. Today these are reimplemented per deployment.</p>
+          </div>
+        </li>
+        <li>
+          <span class="idx">03</span>
+          <div>
+            <h4>Opaque autonomy</h4>
+            <p>When an agent does something unexpected, there is no observability primitive that lets you replay the decision, much less debug it.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ARCHITECTURE ============ -->
+<section id="architecture" class="arch-section">
+  <div class="wrap">
+    <div class="section-marker scroll-reveal">
+      <span class="num">02</span> / Architecture
+      <span class="bar"></span>
+    </div>
+    <h2 class="section-title scroll-reveal">
+      One control plane between<br>
+      <em>agents and the physical world.</em>
+    </h2>
+    <p class="hero-sub scroll-reveal" style="margin-bottom: 0;">
+      IO42 sits in the middle. Agents call a single API. Robots speak through unified drivers. Policy, observability, and human supervision are first-class primitives — not afterthoughts bolted on per deployment.
+    </p>
+
+    <div class="arch-diagram scroll-reveal">
+      <div class="arch-grid">
+        <div class="arch-row">
+          <div class="arch-label">Reasoning ↑</div>
+          <div class="arch-tier">
+            <div class="arch-node">
+              <div class="node-type">Agent</div>
+              <div class="node-name">LLM planner</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-type">Agent</div>
+              <div class="node-name">VLA model</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-type">Agent</div>
+              <div class="node-name">Task router</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-type">Operator</div>
+              <div class="node-name">Human-in-loop</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-flow">↓ unified command API · structured intent</div>
+
+        <div class="arch-row">
+          <div class="arch-label">IO42 control plane</div>
+          <div class="arch-tier core">
+            <div class="arch-node">
+              <div class="node-type">Primitive</div>
+              <div class="node-name">Orchestration</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-type">Primitive</div>
+              <div class="node-name">Policy engine</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-type">Primitive</div>
+              <div class="node-name">Observability</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-type">Primitive</div>
+              <div class="node-name">Supervision</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-flow">↓ hardware-agnostic drivers · telemetry up</div>
+
+        <div class="arch-row">
+          <div class="arch-label">Physical ↓</div>
+          <div class="arch-tier">
+            <div class="arch-node">
+              <div class="node-type">Robot</div>
+              <div class="node-name">AMRs</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-type">Robot</div>
+              <div class="node-name">Humanoids</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-type">Robot</div>
+              <div class="node-name">Manipulators</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-type">Robot</div>
+              <div class="node-name">Drones / UGVs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PILLARS ============ -->
+<section id="platform">
+  <div class="wrap">
+    <div class="section-marker scroll-reveal">
+      <span class="num">03</span> / Platform primitives
+      <span class="bar"></span>
+    </div>
+    <h2 class="section-title scroll-reveal">
+      Four primitives. One substrate.<br>
+      <em>Every agent. Every robot.</em>
+    </h2>
+
+    <div class="pillars">
+      <div class="pillar scroll-reveal">
+        <div class="pillar-num">P.01</div>
+        <h3 class="pillar-title">Fleet orchestration</h3>
+        <p class="pillar-desc">A unified API across robot vendors and form factors. Schedule, dispatch, and coordinate mixed fleets without writing per-vendor glue code.</p>
+        <ul class="pillar-spec">
+          <li>Unified driver model across heterogeneous hardware</li>
+          <li>Multi-agent task scheduling with conflict resolution</li>
+          <li>Mixed-fleet coordination primitives</li>
+        </ul>
+      </div>
+      <div class="pillar scroll-reveal">
+        <div class="pillar-num">P.02</div>
+        <h3 class="pillar-title">Agent governance</h3>
+        <p class="pillar-desc">Declarative policy for what agents can do, where, and under which conditions. Hard safety rails, soft operational guardrails, full audit trails.</p>
+        <ul class="pillar-spec">
+          <li>Policy-as-code with versioned deployment</li>
+          <li>Geofencing, action gating, capability scoping</li>
+          <li>Tamper-evident decision audit log</li>
+        </ul>
+      </div>
+      <div class="pillar scroll-reveal">
+        <div class="pillar-num">P.03</div>
+        <h3 class="pillar-title">Real-time observability</h3>
+        <p class="pillar-desc">Every command, every state transition, every agent decision — captured, queryable, replayable. Debug autonomous behavior like distributed systems.</p>
+        <ul class="pillar-spec">
+          <li>Structured telemetry across the agent–robot boundary</li>
+          <li>Time-travel replay of agent decisions</li>
+          <li>Anomaly detection on fleet behavior</li>
+        </ul>
+      </div>
+      <div class="pillar scroll-reveal">
+        <div class="pillar-num">P.04</div>
+        <h3 class="pillar-title">Human-in-the-loop control</h3>
+        <p class="pillar-desc">Operators supervise fleets, not individual robots. Intervene, override, or hand back control with a single primitive — built for the autonomy gradient.</p>
+        <ul class="pillar-spec">
+          <li>Fleet-level supervision console</li>
+          <li>Graduated autonomy with seamless handoff</li>
+          <li>Exception routing to human operators</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHY NOW ============ -->
+<section id="why-now" class="why-now">
+  <div class="wrap">
+    <div class="section-marker scroll-reveal">
+      <span class="num">04</span> / Why now
+      <span class="bar"></span>
+    </div>
+    <h2 class="section-title scroll-reveal">
+      Three curves are crossing.<br>
+      <em>The infrastructure has not been built.</em>
+    </h2>
+
+    <div class="curves">
+      <div class="curve scroll-reveal">
+        <div class="curve-name">Curve I — Agents</div>
+        <h4 class="curve-claim">Models can finally reason their way through physical action.</h4>
+        <p class="curve-detail">VLA models, long-horizon planners, and tool-using LLMs have crossed the threshold where physical autonomy is no longer a research problem.</p>
+      </div>
+      <div class="curve scroll-reveal">
+        <div class="curve-name">Curve II — Hardware</div>
+        <h4 class="curve-claim">Robot unit economics are collapsing across every form factor.</h4>
+        <p class="curve-detail">AMRs, humanoids, and manipulators are all sliding down the cost curve simultaneously. Fleet deployments at meaningful scale are now economically viable.</p>
+      </div>
+      <div class="curve scroll-reveal">
+        <div class="curve-name">Curve III — Infrastructure</div>
+        <h4 class="curve-claim">The control layer is still being written in YAML inside individual companies.</h4>
+        <p class="curve-detail">Every operator is rebuilding the same orchestration, policy, and observability primitives. None of it compounds. None of it is sharable. None of it is finished.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MOAT ============ -->
+<section class="moat-section">
+  <div class="wrap">
+    <div class="section-marker scroll-reveal">
+      <span class="num">05</span> / Defensibility
+      <span class="bar"></span>
+    </div>
+    <h2 class="section-title scroll-reveal">
+      What compounds<br>
+      <em>at the control plane.</em>
+    </h2>
+
+    <div class="moat-grid">
+      <div class="moat-cell scroll-reveal">
+        <div class="moat-icon"></div>
+        <h3 class="moat-title">Integration breadth</h3>
+        <p class="moat-desc">Every supported robot platform and agent framework deepens the moat. Network effects play out on both sides of the control plane.</p>
+      </div>
+      <div class="moat-cell scroll-reveal">
+        <div class="moat-icon"></div>
+        <h3 class="moat-title">Safety primitives</h3>
+        <p class="moat-desc">Policy and governance for physical autonomy is the hardest part of the stack — and the part vendors cannot ship. We make it portable.</p>
+      </div>
+      <div class="moat-cell scroll-reveal">
+        <div class="moat-icon"></div>
+        <h3 class="moat-title">Operational data</h3>
+        <p class="moat-desc">Every deployment makes the platform smarter about real-world failure modes. Telemetry compounds into better defaults, better policy, better autonomy.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section id="cta" class="cta-section">
+  <div class="wrap">
+    <p class="section-marker scroll-reveal" style="justify-content: center;">
+      <span class="bar"></span>
+      <span class="num">06</span> / End of brief
+      <span class="bar"></span>
+    </p>
+    <h2 class="cta-headline scroll-reveal">
+      The agent era needs<br>
+      <span class="accent">new infrastructure.</span>
+    </h2>
+    <p class="cta-sub scroll-reveal">Build on IO42. Currently onboarding design partners.</p>
+    <div class="cta-row scroll-reveal">
+      <a href="mailto:hello@io42.lab" class="btn btn-primary">Request access <span class="arrow">→</span></a>
+      <a href="mailto:hello@io42.lab" class="btn btn-ghost">Talk to the team <span class="arrow">→</span></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-inner">
+      <div>
+        <div class="logo" style="margin-bottom: 8px;">
+          <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg">
+              <g stroke="#ff5b1f" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M 0 -50 L 50 0 L 0 50 L -50 0 Z"/>
+              </g>
+              <g fill="#ff5b1f">
+                <polygon points="-18,-18 0,-32 18,-18 18,-4 -18,-4"/>
+                <polygon points="-18,4 18,4 18,18 0,32 -18,18"/>
+              </g>
+            </svg>
+          </span>
+          <span><span class="wm-io">io</span><span class="wm-42">42</span> <span class="wm-lab">lab</span></span>
+        </div>
+        <div>Infrastructure for physical autonomy.</div>
+      </div>
+      <div class="footer-meta">
+        <a href="mailto:hello@io42.lab">hello@io42.lab</a>
+        <span>© 2026 IO42 Lab</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Scroll-triggered reveals
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.scroll-reveal').forEach((el) => observer.observe(el));
+
+  // Stagger reveals within sections
+  document.querySelectorAll('.pillars .scroll-reveal, .curves .scroll-reveal, .moat-grid .scroll-reveal, .problem-list, .problem-prose').forEach((el, i) => {
+    el.style.transitionDelay = `${i * 0.08}s`;
+  });
+</script>
+
+</body>
+</html>
