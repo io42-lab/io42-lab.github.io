@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-62 -62 124 124">
+  <!--
+    Favicon build of the IO42 mark. Two deliberate differences from the
+    on-page lockup, both for legibility at 16px:
+
+      1. No background plate. The browser supplies the tab-bar colour and
+         any corner rounding; an opaque one renders as a hard black square.
+      2. Optical tuning — tighter viewBox, stroke 10 (page uses 7), and the
+         split between the two chevrons widened from 8 to 16 units. At the
+         page's 8, the halves merge into a single blob below ~20px.
+  -->
+  <g stroke="#ff5b1f" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 0 -50 L 50 0 L 0 50 L -50 0 Z"/>
+  </g>
+  <g fill="#ff5b1f">
+    <polygon points="-18,-18 0,-32 18,-18 18,-8 -18,-8"/>
+    <polygon points="-18,8 18,8 18,18 0,32 -18,18"/>
+  </g>
+</svg>
