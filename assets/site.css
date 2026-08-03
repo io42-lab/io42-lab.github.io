@@ -33,6 +33,17 @@
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
   --display: 'Fraunces', Georgia, serif;
 
+  /* One column for every page, so the logo and links never shift when
+     moving between the landing page and the documents. */
+  --doc-width: 1280px;
+  --doc-gutter: 32px;
+
+  /* Upper bound on body-prose line length. At the 1280 column, doc-page
+     paragraphs would otherwise run to ~131 characters; comfortable is
+     45-90. Applied to running prose only — headings, ledes and tables
+     set their own. */
+  --measure: 72ch;
+
   /* aliases used by index.html's rules */
   --bg: var(--void);
   --bg-elev: var(--elevated);
@@ -103,6 +114,15 @@ body::before {
 .lockup { display: flex; align-items: center; text-decoration: none; }
 .lockup svg { display: block; flex-shrink: 0; }
 
+/* One lockup size across both doc pages — they used 26px/1.05rem and
+   30px/20px, which put the top-bar rule at a different y on each. */
+.page-arch .lockup,
+.page-fleet .lockup { gap: 0.6rem; }
+.page-arch .lockup svg,
+.page-fleet .lockup svg { width: 28px; height: 28px; }
+.page-arch .wm,
+.page-fleet .wm { font-size: 1.1rem; }
+
 /* Cross-document nav shown in the doc pages' top bars */
 .docnav {
   display: flex;
@@ -118,6 +138,95 @@ body::before {
 }
 .docnav a:hover { color: var(--signal); }
 .docnav .cur { color: var(--chassis); }
+
+/* Small-caps label. The doc pages' one typographic workhorse:
+   section markers, tier tags, and the keys in .docmeta. */
+.label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--faint);
+}
+
+/* Doc-page column. Both doc pages share one width and one gutter so
+   switching between them doesn't shift the column edges — architecture
+   wraps everything in .page, fleet repeats .wrap per landmark. */
+.page-arch .page,
+.page-fleet .wrap {
+  max-width: var(--doc-width);
+  margin: 0 auto;
+  padding-left: var(--doc-gutter);
+  padding-right: var(--doc-gutter);
+}
+
+/* Doc-page top bar: lockup · docnav · drawing id, always one line.
+   Padding lives here, not per page, so the lockup and the rule beneath
+   it land at the same y on both — that offset was the visible jump. */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Document control block — the metadata strip below each doc's hero.
+   Shared so both doc pages state their provenance identically. */
+.docmeta {
+  background: var(--void);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2.5rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.docmeta div { display: flex; flex-direction: column; gap: 0.3rem; }
+.docmeta strong {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--chassis);
+  letter-spacing: 0.04em;
+}
+
+/* Doc-page footer. Same shape as the home page's: lockup + statement
+   on the left, links on the right. The two doc pages used to mirror
+   each other, and only fleet had a filled band. */
+.page-arch footer,
+.page-fleet footer {
+  margin-top: 5rem;
+  padding: 1.75rem 0 3.5rem;
+  border-top: 1px solid var(--line);
+}
+.footrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+.footrow .lockup { margin-bottom: 0.9rem; }
+.page-arch footer p,
+.page-fleet footer p {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 0.8rem;
+  line-height: 1.8;
+  color: var(--faint);
+}
+.page-arch footer .warn,
+.page-fleet footer .warn {
+  margin-top: 0.75rem;
+  color: var(--signal);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
 
 
 /* ============================================================
@@ -141,9 +250,9 @@ body::before {
 }
 
 .page-home .wrap {
-  max-width: 1280px;
+  max-width: var(--doc-width);
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0 var(--doc-gutter);
   position: relative;
   z-index: 2;
 }
@@ -158,9 +267,9 @@ body::before {
   border-bottom: 1px solid var(--line);
 }
 .page-home .nav-inner {
-  max-width: 1280px;
+  max-width: var(--doc-width);
   margin: 0 auto;
-  padding: 16px 32px;
+  padding: 16px var(--doc-gutter);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -833,10 +942,9 @@ body::before {
   line-height: 1.7;
 }
 
+/* Bottom spacing comes from the shared footer padding, not here. */
 .page-arch .page {
   position: relative; z-index: 1;
-  max-width: 880px; margin: 0 auto;
-  padding: 2.75rem 1.5rem 5rem;
   background: transparent;
 }
 
@@ -844,7 +952,6 @@ body::before {
    nothing left to "guess" and invert. */
 .page-arch .topbar,
 .page-arch .hero,
-.page-arch .meta-row,
 .page-arch .sec-head,
 .page-arch .stack,
 .page-arch .connector,
@@ -859,19 +966,7 @@ body::before {
 
 .page-arch code { font-family: var(--mono); font-size: 0.92em; color: var(--signal); font-weight: 500; }
 
-.page-arch .wm { font-size: 1.05rem; }
-.page-arch .lockup { gap: 0.6rem; }
-.page-arch .lockup svg { width: 26px; height: 26px; }
 
-/* ---- top bar ---- */
-.page-arch .topbar {
-  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
-  padding-bottom: 1.75rem; border-bottom: 1px solid var(--line);
-}
-.page-arch .label {
-  font-family: var(--mono); font-size: 10px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: 0.16em; color: var(--faint);
-}
 
 /* ---- hero ---- */
 .page-arch .hero { padding: 4.5rem 0 3.5rem; }
@@ -882,13 +977,6 @@ body::before {
 }
 .page-arch .hero h1 em { font-style: italic; color: var(--signal); }
 .page-arch .hero p { color: var(--dim); max-width: 52ch; margin: 0; font-size: 0.95rem; }
-
-.page-arch .meta-row {
-  display: flex; flex-wrap: wrap; gap: 0 2.5rem; padding: 1.5rem 0;
-  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
-}
-.page-arch .meta-row div { display: flex; flex-direction: column; gap: 0.3rem; }
-.page-arch .meta-row strong { font-weight: 500; font-size: 0.85rem; color: var(--chassis); }
 
 /* ---- sections ---- */
 .page-arch section { padding-top: 4.5rem; }
@@ -926,7 +1014,7 @@ body::before {
   letter-spacing: -0.01em; margin: 0; color: var(--chassis);
 }
 .page-arch .tier.accent h3 { color: var(--signal); }
-.page-arch .tier p { margin: 0 0 1rem; color: var(--dim); font-size: 0.88rem; max-width: 62ch; }
+.page-arch .tier p { margin: 0 0 1rem; color: var(--dim); font-size: 0.88rem; max-width: var(--measure); }
 .page-arch .parts { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .page-arch .parts span {
   font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--dim);
@@ -994,13 +1082,6 @@ body::before {
 .page-arch .rfi li:last-child { border-bottom: none; }
 .page-arch .rfi .k { font-size: 10px; letter-spacing: 0.14em; color: var(--signal); padding-top: 0.25rem; }
 
-/* ---- footer ---- */
-.page-arch footer {
-  margin-top: 5rem; padding-top: 1.75rem;
-  border-top: 1px solid var(--line);
-  display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1.25rem;
-}
-.page-arch footer p { margin: 0; max-width: 44ch; font-size: 0.8rem; color: var(--faint); }
 
 
 /* ============================================================
@@ -1012,32 +1093,12 @@ body::before {
   line-height: 1.65;
 }
 
-.page-fleet .wrap { max-width: 1040px; margin: 0 auto; padding: 0 28px; position: relative; z-index: 1; }
+.page-fleet .wrap { position: relative; z-index: 1; }
 
-/* small-label convention (spec §7) */
-.page-fleet .lbl {
-  font-family: var(--mono); font-size: 10.5px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: .16em; color: var(--faint);
-}
-
-.page-fleet .wm { font-size: 20px; }
-.page-fleet .lockup { gap: 11px; }
-.page-fleet .lockup svg { width: 30px; height: 30px; }
 
 /* ---- header ---- */
-.page-fleet header { border-bottom: 1px solid var(--line); }
-.page-fleet .topbar {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 22px 0; border-bottom: 1px dashed var(--line); gap: 20px; flex-wrap: wrap;
-}
-.page-fleet .meta { display: flex; gap: 26px; flex-wrap: wrap; }
-.page-fleet .meta div { display: flex; flex-direction: column; gap: 2px; }
-.page-fleet .meta b {
-  font-family: var(--mono); font-size: 11.5px; font-weight: 500;
-  color: var(--dim); letter-spacing: .04em; text-transform: none;
-}
-
-.page-fleet .hero { padding: 74px 0 66px; }
+/* No border-bottom on <header>: the trailing .docmeta rule closes it. */
+.page-fleet .hero { padding: 4.5rem 0 3.5rem; }
 .page-fleet h1 {
   font-family: var(--display); font-weight: 300;
   font-size: clamp(40px, 7.4vw, 82px);
@@ -1085,7 +1146,7 @@ body::before {
 .page-fleet .panel.adv h3::after {
   content: " · advisory"; color: var(--faint); font-weight: 400; letter-spacing: .14em;
 }
-.page-fleet .panel p { font-size: 14.5px; line-height: 1.7; color: var(--dim); }
+.page-fleet .panel p { font-size: 14.5px; line-height: 1.7; color: var(--dim); max-width: var(--measure); }
 .page-fleet .panel p + p { margin-top: 10px; }
 .page-fleet .panel em { color: var(--chassis); font-style: normal; font-weight: 500; }
 .page-fleet code {
@@ -1106,7 +1167,7 @@ body::before {
   font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .14em;
   text-transform: uppercase; color: var(--chassis);
 }
-.page-fleet .node .ndesc { font-size: 14.5px; line-height: 1.7; color: var(--dim); }
+.page-fleet .node .ndesc { font-size: 14.5px; line-height: 1.7; color: var(--dim); max-width: var(--measure); }
 @media (max-width: 760px) { .page-fleet .node { grid-template-columns: 1fr; gap: 6px; } }
 .page-fleet .link { height: 22px; width: 1px; background: var(--line); margin-left: 36px; }
 
@@ -1142,7 +1203,7 @@ body::before {
 .page-fleet .loopline { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin-bottom: 16px; }
 .page-fleet .loopline .st { border-style: solid; }
 .page-fleet .loopline .larw { color: var(--faint); font-size: 12px; }
-.page-fleet .loop p { font-size: 14.5px; line-height: 1.7; color: var(--dim); }
+.page-fleet .loop p { font-size: 14.5px; line-height: 1.7; color: var(--dim); max-width: var(--measure); }
 .page-fleet .loop strong { color: var(--chassis); font-weight: 500; }
 
 /* ---- table ---- */
@@ -1173,11 +1234,6 @@ body::before {
 .page-fleet .rv { opacity: 0; transform: translateY(12px); transition: opacity .55s ease, transform .55s ease; }
 .page-fleet .rv.on { opacity: 1; transform: none; }
 
-/* ---- footer ---- */
-.page-fleet footer { background: var(--elevated); border-top: 1px solid var(--line); margin-top: 84px; padding: 34px 0 56px; }
-.page-fleet footer p { font-size: 12px; letter-spacing: .04em; color: var(--faint); line-height: 1.8; }
-.page-fleet footer .warn { color: var(--signal); margin-top: 12px; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; font-weight: 500; }
-.page-fleet .footrow { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
 
 
 /* ============ REDUCED MOTION ============ */

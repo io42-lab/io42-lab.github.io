@@ -41,7 +41,7 @@
     <p>IO42 wires LLM agents to robot fleets through MCP, with ROS2 as the execution substrate. Agents call bounded semantic tools — never actuators — and every call is stamped so a decision can be replayed against the sensor data that produced it.</p>
   </header>
 
-  <div class="meta-row reveal">
+  <div class="docmeta reveal">
     <div><span class="label">Document</span><strong>ARCH-0001</strong></div>
     <div><span class="label">Revision</span><strong>A — Draft</strong></div>
     <div><span class="label">Status</span><strong>Open for review</strong></div>
@@ -197,27 +197,28 @@
     </ul>
   </section>
 
-  <footer>
-    <a class="lockup" href="index.html" aria-label="IO42 Lab — home">
-      <svg viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <g stroke="#FF5B1F" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M 0 -50 L 50 0 L 0 50 L -50 0 Z"/>
-        </g>
-        <g fill="#FF5B1F">
-          <polygon points="-18,-18 0,-32 18,-18 18,-4 -18,-4"/>
-          <polygon points="-18,4 18,4 18,18 0,32 -18,18"/>
-        </g>
-      </svg>
-      <span class="wm"><span class="io">io</span><span class="n">42</span> <span class="lab">lab</span></span>
-    </a>
+  <footer class="footrow">
     <div>
-      <p>This document describes design intent. It is not a safety certification — commission a formal review before anything with a motor acts on it.</p>
-      <nav class="docnav" style="margin-top:1rem;">
-        <a href="index.html">Overview</a>
-        <a href="fleet-os.html">Fleet OS</a>
-        <a href="mailto:hello@io42-lab.com">hello@io42-lab.com</a>
-      </nav>
+      <a class="lockup" href="index.html" aria-label="IO42 Lab — home">
+        <svg viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g stroke="#FF5B1F" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 0 -50 L 50 0 L 0 50 L -50 0 Z"/>
+          </g>
+          <g fill="#FF5B1F">
+            <polygon points="-18,-18 0,-32 18,-18 18,-4 -18,-4"/>
+            <polygon points="-18,4 18,4 18,18 0,32 -18,18"/>
+          </g>
+        </svg>
+        <span class="wm"><span class="io">io</span><span class="n">42</span> <span class="lab">lab</span></span>
+      </a>
+      <p>This document describes design intent. Commission a formal review before anything with a motor acts on it.</p>
+      <p class="warn">Not a safety certification</p>
     </div>
+    <nav class="docnav">
+      <a href="index.html">Overview</a>
+      <a href="fleet-os.html">Fleet OS</a>
+      <a href="mailto:hello@io42-lab.com">hello@io42-lab.com</a>
+    </nav>
   </footer>
 
 </div>
