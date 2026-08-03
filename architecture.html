@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>IO42 — Robot–Agent Control Platform · System Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-70 -70 140 140'%3E%3Crect x='-70' y='-70' width='140' height='140' fill='%23141417'/%3E%3Cg stroke='%23ff5b1f' stroke-width='9' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 0 -50 L 50 0 L 0 50 L -50 0 Z'/%3E%3C/g%3E%3Cg fill='%23ff5b1f'%3E%3Cpolygon points='-18,-18 0,-32 18,-18 18,-4 -18,-4'/%3E%3Cpolygon points='-18,4 18,4 18,18 0,32 -18,18'/%3E%3C/g%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body class="page-arch">
+<div class="page">
+
+  <div class="topbar">
+    <a class="lockup" href="index.html" aria-label="IO42 Lab — home">
+      <svg viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g stroke="#FF5B1F" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 0 -50 L 50 0 L 0 50 L -50 0 Z"/>
+        </g>
+        <g fill="#FF5B1F">
+          <polygon points="-18,-18 0,-32 18,-18 18,-4 -18,-4"/>
+          <polygon points="-18,4 18,4 18,18 0,32 -18,18"/>
+        </g>
+      </svg>
+      <span class="wm"><span class="io">io</span><span class="n">42</span> <span class="lab">lab</span></span>
+    </a>
+    <nav class="docnav">
+      <a href="index.html">← Overview</a>
+      <span class="cur">System architecture</span>
+      <a href="fleet-os.html">Fleet OS →</a>
+    </nav>
+    <span class="label">ARCH-0001 · Rev A</span>
+  </div>
+
+  <header class="hero reveal">
+    <span class="label">System Architecture · Draft</span>
+    <h1>Agents propose. The <em>safety layer</em> decides.</h1>
+    <p>IO42 wires LLM agents to robot fleets through MCP, with ROS2 as the execution substrate. Agents call bounded semantic tools — never actuators — and every call is stamped so a decision can be replayed against the sensor data that produced it.</p>
+  </header>
+
+  <div class="meta-row reveal">
+    <div><span class="label">Document</span><strong>ARCH-0001</strong></div>
+    <div><span class="label">Revision</span><strong>A — Draft</strong></div>
+    <div><span class="label">Status</span><strong>Open for review</strong></div>
+    <div><span class="label">Domains</span><strong>4</strong></div>
+  </div>
+
+  <!-- 01 -->
+  <section>
+    <div class="sec-head reveal"><span class="label">01 / Control Path</span><span class="rule"></span></div>
+    <h2 class="reveal">One spine, top to bottom</h2>
+    <p class="lede reveal">Every command travels this path before reaching an actuator. Telemetry and reasoning traces travel back up it, tagged with a single correlation ID.</p>
+
+    <div class="stack">
+
+      <div class="tier reveal">
+        <div class="tier-head"><h3>LLM Agents</h3><span class="label">Tier 01</span></div>
+        <p>Single-robot and fleet-coordinator agents. Neither holds a direct robot endpoint — every request starts here and ends at the gateway.</p>
+        <div class="parts"><span>Single-Robot Agent</span><span>Fleet Coordinator Agent</span></div>
+      </div>
+
+      <div class="connector"><span class="v"></span><span class="cap">MCP calls</span></div>
+
+      <div class="tier accent reveal">
+        <div class="tier-head"><h3>Fleet Gateway</h3><span class="label">Tier 02 · Control Plane</span></div>
+        <p>The only address an agent ever calls. Discovers live robots, locks actuators per task, routes validated calls to the right domain server.</p>
+        <div class="parts"><span>Discovery</span><span>Auth &amp; Locking</span><span>Command Routing</span></div>
+        <span class="xref">→ traces every call to Tier 07</span>
+      </div>
+
+      <div class="connector"><span class="v"></span><span class="cap">Capability schema</span></div>
+
+      <div class="tier aside reveal">
+        <div class="tier-head"><h3>Robot Registry</h3><span class="label">Tier 03</span></div>
+        <p>URDF merged with a platform capability manifest, then versioned. New robot or new capability produces a new schema, not rewritten code.</p>
+        <div class="parts"><span>URDF Parser</span><span>Capability Manifest</span><span>Versioned Schema Store</span></div>
+        <span class="xref">→ generates the tool schemas consumed by Tier 04</span>
+      </div>
+
+      <div class="connector"><span class="v"></span><span class="cap">Generated tools</span></div>
+
+      <div class="tier accent reveal">
+        <div class="tier-head"><h3>MCP Server Domains</h3><span class="label">Tier 04 · Control Plane</span></div>
+        <p>Generated per robot from its capability descriptor. A fixed-base arm simply has no mobility domain to call.</p>
+        <div class="parts"><span>Perception</span><span>Mobility</span><span>Manipulation</span><span>Diagnostics</span></div>
+      </div>
+
+      <div class="tier aside reveal">
+        <div class="tier-head"><h3>Perception Backends</h3><span class="label">Tier 05</span></div>
+        <p>YOLO for speed, CLIP for open vocabulary, VLM for scene reasoning — normalized to one schema and projected into robot frame before an agent sees them.</p>
+        <div class="parts"><span>YOLO</span><span>CLIP</span><span>VLM</span><span>Frame Projection · tf</span></div>
+        <span class="xref">→ backs the perception domain only · output is advisory</span>
+      </div>
+
+      <div class="boundary reveal">
+        <div class="edge"></div>
+        <div class="body">
+          <span>▲ Advisory · agent reachable</span>
+          <strong>Safety Boundary</strong>
+          <span>Deterministic execution ▼</span>
+        </div>
+        <div class="edge"></div>
+      </div>
+
+      <div class="tier reveal">
+        <div class="tier-head"><h3>Safety &amp; Execution Layer</h3><span class="label">Tier 06 · ROS2</span></div>
+        <p>The only layer with actuator access. Validates every goal against deterministic sensors before Nav2 or MoveIt2 moves anything.</p>
+        <div class="parts"><span>Kinematic / Safety Validation</span><span>Nav2 · MoveIt2 · Controllers</span><span>Hardware Drivers</span></div>
+        <span class="xref">→ streams telemetry to Tier 07</span>
+      </div>
+
+      <div class="connector"><span class="v"></span><span class="cap">rosbag2 + trace join</span></div>
+
+      <div class="tier aside reveal">
+        <div class="tier-head"><h3>Telemetry &amp; Trace Bus</h3><span class="label">Tier 07</span></div>
+        <p>Every MCP call and every sensor frame, joined by one <code>episode_id</code> — the join that makes agent behaviour debuggable and trainable.</p>
+        <div class="parts"><span>Agent Trace Store</span><span>rosbag2 / Sensor Store</span><span>Correlation Engine</span></div>
+      </div>
+
+      <div class="connector"><span class="v"></span><span class="cap">Pattern mining</span></div>
+
+      <div class="tier aside reveal">
+        <div class="tier-head"><h3>Rules &amp; Automation Engine</h3><span class="label">Tier 08</span></div>
+        <p>Mines the trace store for repeat patterns and exports them as behaviour trees. Mature behaviours graduate off the agent path entirely.</p>
+        <div class="parts"><span>Pattern Mining</span><span>Behaviour Trees / FSMs</span><span>Reactive Triggers</span></div>
+        <span class="xref">→ returns validated behaviours to Tier 06 · no agent in the loop</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <div class="sec-head reveal"><span class="label">02 / Domain Spec</span><span class="rule"></span></div>
+    <h2 class="reveal">Four tool families</h2>
+    <p class="lede reveal">All generated from the same registry. A robot exposes only the domains its manifest declares.</p>
+
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>Domain</th><th>Example tools</th><th>ROS2 backing</th></tr></thead>
+        <tbody>
+          <tr><td>Perception</td><td><code>describe_scene</code> · <code>detect_objects</code> · <code>locate_object</code></td><td>Perception stack + tf</td></tr>
+          <tr><td>Mobility</td><td><code>navigate_to</code> · <code>follow_path</code> · <code>get_pose</code> · <code>dock</code></td><td>Nav2</td></tr>
+          <tr><td>Manipulation</td><td><code>pick</code> · <code>place</code> · <code>move_to_pose</code> · <code>grasp</code></td><td>MoveIt2</td></tr>
+          <tr><td>Diagnostics</td><td><code>get_health</code> · <code>get_battery</code> · <code>run_self_test</code></td><td>Diagnostics aggregator</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <div class="sec-head reveal"><span class="label">03 / Walkthrough</span><span class="rule"></span></div>
+    <h2 class="reveal">Pick up the wrench</h2>
+    <p class="lede reveal">A single task, traced end to end — including the part where perception is unsure and the agent asks again.</p>
+
+    <ol class="seq reveal">
+      <li><div><strong>Task starts</strong><p>Coordinator agent generates an <code>episode_id</code> and calls gateway discovery.</p></div></li>
+      <li><div><strong>Low-confidence detection</strong><p><code>detect_objects("wrench")</code> returns a CLIP hit below the confidence floor.</p></div></li>
+      <li><div><strong>Second opinion</strong><p>Agent calls <code>describe_scene()</code> for a VLM read before committing to a grasp.</p></div></li>
+      <li><div><strong>Frame-projected pose</strong><p>Perception returns a <code>pose_3d</code> already resolved into <code>base_link</code>.</p></div></li>
+      <li><div><strong>Command issued</strong><p>Agent calls <code>pick(object_id)</code> on the manipulation domain.</p></div></li>
+      <li><div><strong>Validated execution</strong><p>Safety layer checks reach and force limits; MoveIt2 plans and executes.</p></div></li>
+      <li><div><strong>Everything logged</strong><p>Calls, confidences, trajectory and force-torque land under one <code>episode_id</code> — later mined into a standing rule for low-light picks.</p></div></li>
+    </ol>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <div class="sec-head reveal"><span class="label">04 / Principles</span><span class="rule"></span></div>
+    <h2 class="reveal">What we refuse to compromise</h2>
+    <p class="lede reveal">Five rules that decide most arguments before they start.</p>
+
+    <div class="grid reveal">
+      <div><h4>Bounded macros</h4><p>Agents call <code>move_to_pose</code>. Never raw torque.</p></div>
+      <div><h4>Perception is advisory</h4><p>Deterministic sensors are truth. No exceptions.</p></div>
+      <div><h4>One correlation ID</h4><p><code>episode_id</code> threads MCP calls, ROS goals and rosbag windows.</p></div>
+      <div><h4>Coarse tools, fine logs</h4><p>Simple surface for agents, full resolution underneath for mining.</p></div>
+      <div><h4>Versioned schemas</h4><p>Old traces stay replayable as capabilities evolve.</p></div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <div class="sec-head reveal"><span class="label">05 / Open RFIs</span><span class="rule"></span></div>
+    <h2 class="reveal">Unresolved</h2>
+    <p class="lede reveal">Four decisions still open. Each changes the shape of the control plane.</p>
+
+    <ul class="rfi reveal">
+      <li><span class="k">RFI-01</span><span>Locking granularity — per actuator, per robot, or per capability group?</span></li>
+      <li><span class="k">RFI-02</span><span>Fleet conflict resolution — priority queue, auction, or hard reservation?</span></li>
+      <li><span class="k">RFI-03</span><span>Correlation engine — streaming join or batch join?</span></li>
+      <li><span class="k">RFI-04</span><span>Retention split between rosbag2 and the trace store.</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <a class="lockup" href="index.html" aria-label="IO42 Lab — home">
+      <svg viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g stroke="#FF5B1F" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 0 -50 L 50 0 L 0 50 L -50 0 Z"/>
+        </g>
+        <g fill="#FF5B1F">
+          <polygon points="-18,-18 0,-32 18,-18 18,-4 -18,-4"/>
+          <polygon points="-18,4 18,4 18,18 0,32 -18,18"/>
+        </g>
+      </svg>
+      <span class="wm"><span class="io">io</span><span class="n">42</span> <span class="lab">lab</span></span>
+    </a>
+    <div>
+      <p>This document describes design intent. It is not a safety certification — commission a formal review before anything with a motor acts on it.</p>
+      <nav class="docnav" style="margin-top:1rem;">
+        <a href="index.html">Overview</a>
+        <a href="fleet-os.html">Fleet OS</a>
+        <a href="mailto:hello@io42-lab.com">hello@io42-lab.com</a>
+      </nav>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('is-visible'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+</script>
+
+</body>
+</html>

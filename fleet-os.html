@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>IO42 · ARCH-0001 Phase 3 — Fleet Operating System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-70 -70 140 140'%3E%3Crect x='-70' y='-70' width='140' height='140' fill='%23141417'/%3E%3Cg stroke='%23ff5b1f' stroke-width='9' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M 0 -50 L 50 0 L 0 50 L -50 0 Z'/%3E%3C/g%3E%3Cg fill='%23ff5b1f'%3E%3Cpolygon points='-18,-18 0,-32 18,-18 18,-4 -18,-4'/%3E%3Cpolygon points='-18,4 18,4 18,18 0,32 -18,18'/%3E%3C/g%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body class="page-fleet">
+
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <a class="lockup" href="index.html" aria-label="IO42 Lab — home">
+        <svg viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g stroke="#FF5B1F" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 0 -50 L 50 0 L 0 50 L -50 0 Z"/>
+          </g>
+          <g fill="#FF5B1F">
+            <polygon points="-18,-18 0,-32 18,-18 18,-4 -18,-4"/>
+            <polygon points="-18,4 18,4 18,18 0,32 -18,18"/>
+          </g>
+        </svg>
+        <span class="wm"><span class="io">io</span><span class="n">42</span> <span class="lab">lab</span></span>
+      </a>
+      <nav class="docnav">
+        <a href="index.html">← Overview</a>
+        <a href="architecture.html">System architecture</a>
+        <span class="cur">Fleet OS</span>
+      </nav>
+      <div class="meta">
+        <div><span class="lbl">Drawing</span><b>ARCH-0001</b></div>
+        <div><span class="lbl">Phase</span><b>3 · projection</b></div>
+        <div><span class="lbl">Basis</span><b>Rev D, Part II</b></div>
+        <div><span class="lbl">Status</span><b>Future development</b></div>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>The fleet<br>operating system,<br><em>once the traces vote</em></h1>
+      <p class="thesis">
+        Phase 3 is what IO42 becomes after every deferred component in Rev D has earned its place
+        through evidence. One rule organizes the whole drawing:
+        <strong>authority flows downward, evidence flows back up.</strong>
+        Nothing here is scheduled — each block ships only when a measured trigger fires.
+      </p>
+      <div class="legend">
+        <span><i class="key dash"></i>Stochastic · advisory</span>
+        <span><i class="key solid"></i>Deterministic machinery</span>
+        <span><i class="key sig"></i>Safety boundary</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+<div class="wrap spined">
+
+  <!-- 01 -->
+  <div class="tick rv"><span class="num">01 /</span><span class="name">Proposes</span><span class="sub">intent enters the system</span></div>
+  <div class="grid2 rv">
+    <div class="panel adv">
+      <h3>Coordinator agents</h3>
+      <p>Decompose missions into tasks and <em>propose</em> them into the pool with suggested
+      priorities. Their opinion is an input, never a verdict.</p>
+    </div>
+    <div class="panel adv">
+      <h3>Humans &amp; reactive triggers</h3>
+      <p>Ad-hoc requests through chat, plus standing rules — <code>battery &lt; 15% → dock</code> —
+      that inject tasks with no reasoning loop involved.</p>
+    </div>
+  </div>
+
+  <!-- 02 -->
+  <div class="tick rv"><span class="num">02 /</span><span class="name">Schedules</span><span class="sub">deterministic arbitration</span></div>
+  <div class="chain rv">
+    <div class="node">
+      <span class="nname">Task pool</span>
+      <span class="ndesc">Durable, inspectable backlog. Every entry carries provenance, priority class, deadline, and spatial footprint.</span>
+    </div>
+    <div class="link"></div>
+    <div class="node">
+      <span class="nname">Scheduler</span>
+      <span class="ndesc">Scores by policy, not by vibes:
+        <code>w₁·priority + w₂·urgency + w₃·age − w₄·travel − w₅·resource_risk</code>.
+        Hard preemption for safety classes, an aging bound so nothing starves, and physical
+        affinity — pose, battery, payload — as a first-class term.</span>
+    </div>
+    <div class="link"></div>
+    <div class="node">
+      <span class="nname">Matchmaker</span>
+      <span class="ndesc">Assigns an agent template from trace history: per template, task type, and
+        robot class — success rate, duration, bounce rate, token cost. Historical evidence beats
+        self-estimates. Epsilon-greedy exploration keeps new templates hirable.</span>
+    </div>
+  </div>
+
+  <!-- 03 -->
+  <div class="tick rv"><span class="num">03 /</span><span class="name">Prepares</span><span class="sub">thinking stays outside the lease</span></div>
+  <div class="panel adv rv">
+    <h3>Intake queue — warm context</h3>
+    <p>A fresh, task-scoped agent is instantiated and subscribes to the robot's
+      <em>read-only state-delta stream</em> — payload format is the resync digest. It plans
+      speculatively while it waits. Reads never require the lease.</p>
+  </div>
+  <div class="panel rv">
+    <h3>Ready queue — mise en place</h3>
+    <p>Entry requires a concrete, pre-validated goal candidate. Nobody touches the stove until
+      prep is done. Grant order may weight context freshness, bounded by aging so slow thinkers
+      still get served.</p>
+  </div>
+  <div class="panel rv">
+    <h3>Lease authority — one robot, one owner, one epoch</h3>
+    <p>Whole-robot lease with two-phase semantics: deliberation heartbeats, goal-progress renewal.
+      Every grant increments a fencing epoch; stale writes are rejected with <code>LEASE_LOST</code>.
+      Reclaim window for the slow, queue service for the dead, anti-squat forfeiture after
+      <code>K</code> reclaims.</p>
+    <div class="strip" role="img" aria-label="Lease lifecycle: free, granted with epoch increment, leased, TTL lapse, expiring reclaim window, then reclaim or queue service, then resync into a new lease">
+      <span class="st">FREE</span>
+      <span class="arw"><b>→</b><span>grant · epoch++</span></span>
+      <span class="st">LEASED</span>
+      <span class="arw"><b>→</b><span>ttl lapse</span></span>
+      <span class="st ghost">EXPIRING (R)</span>
+      <span class="arw"><b>→</b><span>reclaim ∣ queue</span></span>
+      <span class="st">RESYNC → LEASED′</span>
+    </div>
+    <p>Grant-time re-validation of the candidate goal; a bounce returns the agent to intake with its
+      context still warm. The first write after any epoch change is rejected until the state digest
+      has been consumed.</p>
+  </div>
+
+  <!-- the line -->
+  <div class="boundary rv">
+    <span class="tag">Safety boundary</span>
+    <span class="note">Nothing above this line moves metal</span>
+  </div>
+
+  <!-- 04 -->
+  <div class="tick rv"><span class="num">04 /</span><span class="name">Executes</span><span class="sub">validated, deterministic, safety-rated</span></div>
+  <div class="grid2 rv">
+    <div class="panel">
+      <h3>Validation gate</h3>
+      <p>Every write is checked against the capability manifest: kinematic limits, safe zones,
+        force ceilings, and enforced perception freshness — advisory poses expire.</p>
+    </div>
+    <div class="panel">
+      <h3>Execution stack</h3>
+      <p>Nav2, MoveIt2, controllers, drivers. The safe-idle controller owns the robot whenever no
+        valid lease-holder does. Safety sensors are truth; agents are opinion.</p>
+    </div>
+  </div>
+  <div class="panel rv">
+    <h3>Fleet router — the scale-out seam</h3>
+    <p>Discovery, auth, lease brokering, and command routing across N robots, generated from the
+      same capability manifests as robot #1. Deterministic travel-cost auctions run between
+      <em>robots</em> for spatial tasks, never between agents. Multi-robot transactions —
+      two-lease atomicity — unlock here.</p>
+  </div>
+
+  <!-- 05 -->
+  <div class="tick rv"><span class="num">05 /</span><span class="name">Learns</span><span class="sub">evidence flows back up</span></div>
+  <div class="loop rv">
+    <div class="loopline">
+      <span class="st">episode_id traces</span><span class="larw">→</span>
+      <span class="st">correlation engine</span><span class="larw">→</span>
+      <span class="st">pattern mining</span><span class="larw">→</span>
+      <span class="st">graduation gate</span><span class="larw">→</span>
+      <span class="st">rules &amp; behavior trees</span><span class="larw">↺</span>
+    </div>
+    <p>One <code>episode_id</code> threads every MCP call, ROS2 goal, rosbag window, validation
+      verdict, and lease event. Mining proposes; the <strong>graduation gate</strong> — human review
+      plus shadow evaluation — decides. Rules never self-deploy into the safety layer. The same
+      trace tables feed the matchmaker, so the platform gets measurably better at hiring the longer
+      it runs.</p>
+  </div>
+
+  <!-- 06 -->
+  <div class="tick rv"><span class="num">06 /</span><span class="name">Graduated</span><span class="sub">how each component earned its place</span></div>
+  <div class="tablewrap rv">
+    <table>
+      <thead><tr><th>Component</th><th>Trigger that fired</th><th>State</th></tr></thead>
+      <tbody>
+        <tr><td>Lease queue &amp; contention</td><td class="trig">conflicts &gt; 1/day, second task source live</td><td class="stat">Graduated</td></tr>
+        <tr><td>Intake / ready split</td><td class="trig">idle-while-leased &gt; 25%, deliberation-attributed</td><td class="stat">Graduated</td></tr>
+        <tr><td>Scheduler + task pool</td><td class="trig">pending depth &gt; 3 sustained</td><td class="stat">Graduated</td></tr>
+        <tr><td>Matchmaker</td><td class="trig">≥ 2 templates, divergent trace metrics</td><td class="stat">Graduated</td></tr>
+        <tr><td>Fleet router</td><td class="trig">robot #2 physically on order</td><td class="stat">Graduated</td></tr>
+        <tr><td>Rules mining</td><td class="trig">≥ 500 episodes of a recurring task type</td><td class="stat">Graduated</td></tr>
+        <tr><td>Multi-robot transactions</td><td class="trig">concrete two-robot task specified</td><td class="stat">Graduated</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel rv">
+    <h3>Principles carried forward</h3>
+    <div class="pills">
+      <span class="pill adv">Agents propose</span>
+      <span class="pill sig">The safety layer decides</span>
+      <span class="pill adv">Architects propose</span>
+      <span class="pill">The trace data decides</span>
+      <span class="pill">Bounded macros, never raw joints</span>
+      <span class="pill">Perception is advisory</span>
+      <span class="pill">Epochs make lease loss a fact</span>
+      <span class="pill">Control returns after the world-model does</span>
+      <span class="pill">One episode_id threads everything</span>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap footrow">
+    <div>
+      <p>ARCH-0001 · Phase 3 projection · authority flows downward, evidence flows back up.</p>
+      <p class="warn">Describes intent, not a safety certification</p>
+      <nav class="docnav" style="margin-top:14px;">
+        <a href="index.html">Overview</a>
+        <a href="architecture.html">System architecture</a>
+        <a href="mailto:hello@io42-lab.com">hello@io42-lab.com</a>
+      </nav>
+    </div>
+    <a class="lockup" href="index.html" aria-label="IO42 Lab — home">
+      <svg viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g stroke="#FF5B1F" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 0 -50 L 50 0 L 0 50 L -50 0 Z"/>
+        </g>
+        <g fill="#FF5B1F">
+          <polygon points="-18,-18 0,-32 18,-18 18,-4 -18,-4"/>
+          <polygon points="-18,4 18,4 18,18 0,32 -18,18"/>
+        </g>
+      </svg>
+      <span class="wm"><span class="io">io</span><span class="n">42</span> <span class="lab">lab</span></span>
+    </a>
+  </div>
+</footer>
+
+<script>
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target);} });
+  },{threshold:.1});
+  document.querySelectorAll('.rv').forEach(function(el){io.observe(el)});
+</script>
+
+</body>
+</html>
