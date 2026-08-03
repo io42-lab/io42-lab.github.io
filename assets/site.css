@@ -44,6 +44,13 @@
      set their own. */
   --measure: 72ch;
 
+  /* Lockup + header. One set of values for every page: the wordmark was
+     built twice (index had .logo/.logo-mark, the docs .lockup/.wm) and
+     the two copies drifted to different icon, text and bar sizes. */
+  --mark-size: 26px;
+  --wordmark-size: 15px;
+  --header-h: 68px;
+
   /* aliases used by index.html's rules */
   --bg: var(--void);
   --bg-elev: var(--elevated);
@@ -103,33 +110,35 @@ body::before {
 /* ============ WORDMARK / LOCKUP (shared) ============ */
 .wm {
   font-family: var(--mono);
+  font-size: var(--wordmark-size);
   letter-spacing: 0.04em;
   text-transform: lowercase;
   line-height: 1;
 }
 .wm .io  { font-weight: 400; color: var(--signal); }
 .wm .n   { font-weight: 700; color: var(--signal); }
-.wm .lab { font-weight: 500; color: #7c7c86; }
+.wm .lab { font-weight: 500; color: var(--text-faint); }
 
-.lockup { display: flex; align-items: center; text-decoration: none; }
-.lockup svg { display: block; flex-shrink: 0; }
-
-/* One lockup size across both doc pages — they used 26px/1.05rem and
-   30px/20px, which put the top-bar rule at a different y on each. */
-.page-arch .lockup,
-.page-fleet .lockup { gap: 0.6rem; }
-.page-arch .lockup svg,
-.page-fleet .lockup svg { width: 28px; height: 28px; }
-.page-arch .wm,
-.page-fleet .wm { font-size: 1.1rem; }
+.lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.lockup svg {
+  display: block;
+  flex-shrink: 0;
+  width: var(--mark-size);
+  height: var(--mark-size);
+}
 
 /* Cross-document nav shown in the doc pages' top bars */
 .docnav {
   display: flex;
   align-items: center;
-  gap: 18px;
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  gap: 24px;
+  font-size: 13px;
+  letter-spacing: 0.01em;
 }
 .docnav a {
   color: var(--faint);
@@ -162,16 +171,34 @@ body::before {
 }
 
 /* Doc-page top bar: lockup · docnav · drawing id, always one line.
-   Padding lives here, not per page, so the lockup and the rule beneath
-   it land at the same y on both — that offset was the visible jump. */
+   Mirrors index's <nav> + .nav-inner split — .docbar is full-bleed so
+   its rule spans the viewport, .topbar is the centred content row. */
+.docbar {
+  position: relative;
+  z-index: 1;
+  background: var(--void);
+  border-bottom: 1px solid var(--line);
+}
 .topbar {
+  max-width: var(--doc-width);
+  margin: 0 auto;
+  padding: 0 var(--doc-gutter);
+  min-height: var(--header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
-  padding: 22px 0;
-  border-bottom: 1px solid var(--line);
+}
+
+/* Keep the bar one line. The drawing id goes first — it repeats in the
+   .docmeta strip — since the docnav is the only way off the page. */
+@media (max-width: 900px) {
+  .topbar > .label { display: none; }
+  .docnav { gap: 16px; font-size: 12px; }
+}
+@media (max-width: 560px) {
+  .docnav { gap: 12px; font-size: 11px; }
 }
 
 /* Document control block — the metadata strip below each doc's hero.
@@ -196,20 +223,28 @@ body::before {
 /* Doc-page footer. Same shape as the home page's: lockup + statement
    on the left, links on the right. The two doc pages used to mirror
    each other, and only fleet had a filled band. */
+/* Full-bleed like the header, so the rule spans the viewport. */
 .page-arch footer,
 .page-fleet footer {
+  position: relative;
+  z-index: 1;
   margin-top: 5rem;
   padding: 1.75rem 0 3.5rem;
   border-top: 1px solid var(--line);
 }
 .footrow {
+  max-width: var(--doc-width);
+  margin: 0 auto;
+  padding: 0 var(--doc-gutter);
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   flex-wrap: wrap;
   gap: 1.5rem;
 }
-.footrow .lockup { margin-bottom: 0.9rem; }
+/* Footer lockup sits above the statement text on every page. */
+.footrow .lockup,
+.page-home .footer-inner .lockup { margin-bottom: 0.9rem; }
 .page-arch footer p,
 .page-fleet footer p {
   margin: 0;
@@ -269,32 +304,13 @@ body::before {
 .page-home .nav-inner {
   max-width: var(--doc-width);
   margin: 0 auto;
-  padding: 16px var(--doc-gutter);
+  padding: 0 var(--doc-gutter);
+  min-height: var(--header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
 }
-.page-home .logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 15px;
-  letter-spacing: 0.03em;
-  text-transform: lowercase;
-  color: var(--accent);
-  text-decoration: none;
-}
-.page-home .logo .wm-io { font-weight: 400; }
-.page-home .logo .wm-42 { font-weight: 700; }
-.page-home .logo .wm-lab { font-weight: 500; color: var(--text-faint); }
-.page-home .logo-mark {
-  width: 26px;
-  height: 26px;
-  display: block;
-  flex-shrink: 0;
-}
-.page-home .logo-mark svg { width: 100%; height: 100%; display: block; }
 
 .page-home .nav-links {
   display: flex;

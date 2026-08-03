@@ -12,8 +12,8 @@
 <link rel="stylesheet" href="assets/site.css">
 </head>
 <body class="page-arch">
-<div class="page">
 
+<div class="docbar">
   <div class="topbar">
     <a class="lockup" href="index.html" aria-label="IO42 Lab — home">
       <svg viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -34,6 +34,9 @@
     </nav>
     <span class="label">ARCH-0001 · Rev A</span>
   </div>
+</div>
+
+<div class="page">
 
   <header class="hero reveal">
     <span class="label">System Architecture · Draft</span>
@@ -197,7 +200,10 @@
     </ul>
   </section>
 
-  <footer class="footrow">
+</div>
+
+<footer>
+  <div class="footrow">
     <div>
       <a class="lockup" href="index.html" aria-label="IO42 Lab — home">
         <svg viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -211,17 +217,16 @@
         </svg>
         <span class="wm"><span class="io">io</span><span class="n">42</span> <span class="lab">lab</span></span>
       </a>
-      <p>This document describes design intent. Commission a formal review before anything with a motor acts on it.</p>
-      <p class="warn">Not a safety certification</p>
+      <p>Commission a formal review before anything with a motor acts on it.</p>
+      <p class="warn">Describes intent, not a safety certification</p>
     </div>
     <nav class="docnav">
       <a href="index.html">Overview</a>
       <a href="fleet-os.html">Fleet OS</a>
       <a href="mailto:hello@io42-lab.com">hello@io42-lab.com</a>
     </nav>
-  </footer>
-
-</div>
+  </div>
+</footer>
 
 <script>
   var io = new IntersectionObserver(function(entries){
